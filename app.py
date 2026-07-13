@@ -1,14 +1,15 @@
 import streamlit as st
+import pandas as pd
 from pypdf import PdfReader
 from io import BytesIO
 
 st.set_page_config(
-    page_title="FV PDF Read Diagnostic",
+    page_title="FV Excel Diagnostic",
     layout="wide"
 )
 
-st.title("FV PDF Read Diagnostic")
-st.write("This test checks whether Streamlit can read text from a PDF using pypdf.")
+st.title("FV Excel Diagnostic")
+st.write("This test checks PDF text extraction, pandas tables, and Excel generation.")
 
 uploaded_files = st.file_uploader(
     "Upload one or more PDF files",
@@ -17,30 +18,38 @@ uploaded_files = st.file_uploader(
 )
 
 if uploaded_files:
-    st.success(f"{len(uploaded_files)} file(s) uploaded successfully.")
+    rows = []
 
     for file in uploaded_files:
-        st.write({
-            "file_name": file.name,
-            "file_type": file.type,
-            "file_size_bytes": file.size,
+        data = file.getvalue()
+        reader = PdfReader(BytesIO(data))
+
+        full_text = ""
+        for page in reader.pages:
+            full_text += (page.extract_text() or "") + "\n"
+
+        rows.append({
+            "File Name": file.name,
+            "File Size": file.size,
+            "Pages": len(reader.pages),
+            "Characters Extracted": len(full_text),
+            "Has BOX BOM": "BOX BOM" in full_text,
+            "Has INTERIOR BOM": "INTERIOR BOM" in full_text,
+            "Has Breaker Catalog Number": "Breaker Catalog Number" in full_text,
         })
 
-    if st.button("Read PDF text"):
-        for file in uploaded_files:
-            try:
-                data = file.getvalue()
-                reader = PdfReader(BytesIO(data))
+    df = pd.DataFrame(rows)
 
-                st.subheader(file.name)
-                st.write(f"Pages detected: {len(reader.pages)}")
+    st.success("PDFs processed successfully.")
+    st.dataframe(df, width="stretch")
 
-                first_page_text = reader.pages[0].extract_text() or ""
-                st.write(f"Characters extracted from page 1: {len(first_page_text)}")
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Diagnostic")
 
-                with st.expander("Preview extracted text"):
-                    st.text(first_page_text[:3000])
-
-            except Exception as error:
-                st.error(f"Error reading {file.name}")
-                st.exception(error)
+    st.download_button(
+        "Download diagnostic Excel",
+        data=output.getvalue(),
+        file_name="diagnostic.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
