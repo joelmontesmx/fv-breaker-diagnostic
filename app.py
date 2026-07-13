@@ -41,7 +41,7 @@ if uploaded_files:
     df = pd.DataFrame(rows)
 
     st.success("PDFs processed successfully.")
-    st.dataframe(df, width="stretch")
+    st.dataframe(df, use_container_width=True)
 
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
