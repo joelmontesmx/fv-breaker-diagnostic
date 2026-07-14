@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from pypdf import PdfReader
 from io import BytesIO
+import base64
 
 st.set_page_config(
     page_title="FV Excel Diagnostic",
@@ -46,10 +47,24 @@ if uploaded_files:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Diagnostic")
-
-    st.download_button(
-        "Download diagnostic Excel",
-        data=output.getvalue(),
-        file_name="diagnostic.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+ 
+    excel_bytes = output.getvalue()
+    b64 = base64.b64encode(excel_bytes).decode()
+    
+    href = f"""
+    <a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}"
+       download="diagnostic.xlsx"
+       style="
+            display:inline-block;
+            padding:0.65rem 1rem;
+            border:1px solid #ff000f;
+            border-radius:0.5rem;
+            color:#ff000f;
+            text-decoration:none;
+            font-weight:600;
+       ">
+       Download diagnostic Excel
+    </a>
+    """
+    
+    st.markdown(href, unsafe_allow_html=True)
