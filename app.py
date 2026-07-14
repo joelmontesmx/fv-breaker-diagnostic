@@ -265,21 +265,6 @@ def filter_dataframe(df: pd.DataFrame, query: str, visible_sections: list[str]) 
     return filtered
 
 
-def get_visible_sections() -> list[str]:
-    available_sections = ["Breaker BOM", "Interior BOM", "Box BOM"]
-    visible: list[str] = []
-    st.markdown("**BOM sections to show**")
-    cols = st.columns(3)
-    for index, section in enumerate(available_sections):
-        key = f"show_{section}"
-        if key not in st.session_state:
-            st.session_state[key] = True
-        with cols[index]:
-            is_on = st.toggle(section, value=bool(st.session_state[key]), key=key)
-            if is_on:
-                visible.append(section)
-    return visible
-
 
 def get_breaker_columns() -> list[str]:
     base = [
@@ -287,13 +272,11 @@ def get_breaker_columns() -> list[str]:
         "Item",
         "Sales Order-Item",
         "Front View",
-        "BOM Section",
         "Record Type",
         "Catalog Number",
         "Alternate SKU",
         "ABB Part Number",
         "Quantity",
-        "Description",
     ]
     optional_fields = [
         "Trip Amps",
@@ -303,16 +286,208 @@ def get_breaker_columns() -> list[str]:
         "Trip Unit",
         "Phases Used",
         "Notes",
+        "X Space",
     ]
-    default_fields = ["Trip Amps", "Poles", "Lug Cable Size / Neut Sensor / Grnd Fault Cable"]
+    optional_fields = list(dict.fromkeys(optional_fields))
+    default_fields = [
+        "Trip Amps",
+        "Poles",
+        "Lug Cable Size / Neut Sensor / Grnd Fault Cable",
+    ]
     selected = st.multiselect(
-        "Optional breaker fields to display",
+        "Breaker fields to display",
         options=optional_fields,
-        default=default_fields,
-        help="These fields only affect the on-screen preview. The Excel report keeps the complete extraction.",
+        default=[field for field in default_fields if field in optional_fields],
+        help="These fields only apply to Breaker BOM rows. Interior BOM and Box BOM use their own relevant columns.",
     )
-    return base + selected
+    return list(dict.fromkeys(base + selected + ["Description"]))
 
+
+def columns_available(df: pd.DataFrame, desired: list[str]) -> list[str]:
+    if df is None or df.empty:
+        return desired
+    return [column for column in desired if column in df.columns]
+
+
+def section_detail_columns(section: str, breaker_columns: list[str] | None = None) -> list[str]:
+    if section in {"Breaker BOM", "Spacer Breakers"}:
+        return breaker_columns or get_breaker_columns()
+    if section in {"Interior BOM", "Box BOM"}:
+        return [
+            "Sales Order",
+            "Item",
+            "Sales Order-Item",
+            "Front View",
+            "Catalog Number",
+            "Alternate SKU",
+            "ABB Part Number",
+            "Quantity",
+            "Description",
+            "Source File",
+            "Page",
+        ]
+    if section == "Unmapped Codes":
+        return ["Detected Code", "BOM Section", "Record Type", "Sales Order-Item", "Front View", "Quantity", "Source File"]
+    if section == "Processing Log":
+        return []
+    return []
+
+
+def filter_by_query(df: pd.DataFrame, query: str) -> pd.DataFrame:
+    if df is None or df.empty:
+        return df
+    q = query.strip().upper()
+    if not q:
+        return df.copy()
+    searchable_columns = [
+        column
+        for column in [
+            "Sales Order",
+            "Item",
+            "Sales Order-Item",
+            "Front View",
+            "BOM Section",
+            "Record Type",
+            "Catalog Number",
+            "Alternate SKU",
+            "ABB Part Number",
+            "Description",
+            "Source File",
+        ]
+        if column in df.columns
+    ]
+    if not searchable_columns:
+        return df.copy()
+    mask = pd.Series(False, index=df.index)
+    for column in searchable_columns:
+        mask = mask | df[column].astype(str).str.upper().str.contains(q, na=False, regex=False)
+    return df[mask].copy()
+
+
+def apply_section_filter(df: pd.DataFrame, sections: list[str]) -> pd.DataFrame:
+    if df is None or df.empty or not sections or "BOM Section" not in df.columns:
+        return df
+    return df[df["BOM Section"].isin(sections)].copy()
+
+
+def render_html_table(df: pd.DataFrame, columns: list[str] | None = None, max_rows: int = 60) -> None:
+    st.markdown(dataframe_html_preview(df, columns=columns, max_rows=max_rows), unsafe_allow_html=True)
+
+
+def result_subset_for_section(dataframes: dict[str, pd.DataFrame], section: str) -> pd.DataFrame:
+    if section in dataframes:
+        return dataframes[section].copy()
+    results = dataframes.get("Results", pd.DataFrame()).copy()
+    if results.empty:
+        return results
+    if "BOM Section" in results.columns:
+        return results[results["BOM Section"] == section].copy()
+    return results
+
+
+def render_grouped_order_view(dataframes: dict[str, pd.DataFrame], query: str, breaker_columns: list[str]) -> None:
+    results = dataframes.get("Results", pd.DataFrame()).copy()
+    if results.empty:
+        st.info("No extracted rows available for grouped view.")
+        return
+    results = filter_by_query(results, query)
+    if results.empty:
+        st.info("No rows match the current search.")
+        return
+
+    group_col = "Sales Order-Item" if "Sales Order-Item" in results.columns else None
+    if not group_col:
+        render_html_table(results, max_rows=80)
+        return
+
+    open_by_default = st.checkbox("Open grouped results by default", value=False)
+    so_items = sorted(results[group_col].astype(str).dropna().unique().tolist())
+    st.caption(f"Showing {len(so_items)} Sales Order-Item group(s). Use the search box to narrow the list.")
+
+    for so_item in so_items:
+        group = results[results[group_col].astype(str) == so_item].copy()
+        sales_order = group["Sales Order"].iloc[0] if "Sales Order" in group.columns and not group.empty else ""
+        item = group["Item"].iloc[0] if "Item" in group.columns and not group.empty else ""
+        breaker_qty = int(pd.to_numeric(group.loc[group.get("BOM Section", "") == "Breaker BOM", "Quantity"], errors="coerce").fillna(0).sum()) if "BOM Section" in group.columns and "Quantity" in group.columns else 0
+        interior_rows = int((group.get("BOM Section", pd.Series(dtype=str)) == "Interior BOM").sum()) if "BOM Section" in group.columns else 0
+        box_rows = int((group.get("BOM Section", pd.Series(dtype=str)) == "Box BOM").sum()) if "BOM Section" in group.columns else 0
+        title = f"{so_item}  •  SO {sales_order}  •  Item {item}  •  {breaker_qty} breaker qty  •  {interior_rows} interior rows  •  {box_rows} box rows"
+
+        with st.expander(title, expanded=open_by_default):
+            panels = ["Single Panel"]
+            if "Front View" in group.columns:
+                panels = sorted(group["Front View"].astype(str).dropna().unique().tolist())
+            for panel in panels:
+                panel_df = group[group["Front View"].astype(str) == panel].copy() if "Front View" in group.columns else group
+                st.markdown(f"**{escape(panel)}**")
+                for section in ["Breaker BOM", "Interior BOM", "Box BOM"]:
+                    if "BOM Section" not in panel_df.columns:
+                        continue
+                    section_df = panel_df[panel_df["BOM Section"] == section].copy()
+                    if section_df.empty:
+                        continue
+                    if section == "Breaker BOM":
+                        columns = columns_available(section_df, breaker_columns)
+                    else:
+                        columns = columns_available(section_df, section_detail_columns(section, breaker_columns))
+                    st.markdown(f'<span class="status-pill">{escape(section)}</span><span class="status-pill dark">Rows: {len(section_df)}</span>', unsafe_allow_html=True)
+                    render_html_table(section_df, columns=columns, max_rows=35)
+
+
+def render_recommended_view(dataframes: dict[str, pd.DataFrame], view_name: str, query: str, breaker_columns: list[str]) -> None:
+    if view_name == "Grouped by Sales Order-Item":
+        render_grouped_order_view(dataframes, query, breaker_columns)
+        return
+
+    view_to_section = {
+        "Breaker BOM detail": "Breaker BOM",
+        "Interior BOM detail": "Interior BOM",
+        "Box BOM detail": "Box BOM",
+        "Spacer breakers excluded": "Spacer Breakers",
+        "Missing mappings": "Unmapped Codes",
+        "Processing log": "Processing Log",
+    }
+    section = view_to_section.get(view_name, "Results")
+    df = result_subset_for_section(dataframes, section)
+    df = filter_by_query(df, query)
+    columns = section_detail_columns(section, breaker_columns)
+    st.markdown(
+        f'<span class="status-pill">{escape(view_name)}</span>'
+        f'<span class="status-pill dark">Rows shown: {0 if df is None or df.empty else len(df)}</span>'
+        f'<span class="status-pill red">Complete workbook available in Excel</span>',
+        unsafe_allow_html=True,
+    )
+    render_html_table(df, columns=columns, max_rows=80)
+
+
+def render_custom_table(dataframes: dict[str, pd.DataFrame], query: str) -> None:
+    results = dataframes.get("Results", pd.DataFrame()).copy()
+    if results.empty:
+        st.info("No results available.")
+        return
+    section_options = [section for section in ["Breaker BOM", "Interior BOM", "Box BOM"] if section in set(results.get("BOM Section", []))]
+    selected_sections = st.multiselect("BOM sections", options=section_options, default=section_options)
+    filtered = apply_section_filter(results, selected_sections)
+    filtered = filter_by_query(filtered, query)
+    available_columns = list(filtered.columns) if not filtered.empty else list(results.columns)
+    default_columns = [
+        column
+        for column in ["Sales Order-Item", "Front View", "BOM Section", "Record Type", "Catalog Number", "ABB Part Number", "Quantity", "Description"]
+        if column in available_columns
+    ]
+    selected_columns = st.multiselect("Columns to show", options=available_columns, default=default_columns)
+    render_html_table(filtered, columns=selected_columns, max_rows=100)
+
+
+def render_raw_table(dataframes: dict[str, pd.DataFrame], query: str) -> None:
+    available = [name for name, df in dataframes.items() if getattr(df, "empty", True) is False]
+    if not available:
+        st.info("No raw tables are available.")
+        return
+    selected = st.selectbox("Raw sheet", available)
+    df = filter_by_query(dataframes[selected], query)
+    st.caption("Raw view shows the extracted sheet columns with minimal formatting.")
+    render_html_table(df, columns=list(df.columns), max_rows=100)
 
 # -----------------------------
 # Header
@@ -401,30 +576,41 @@ if result:
     render_section_open("Processing Summary", step="2", help_text="Processed output by section. Use the controls below to customize what is visible on screen.")
     render_metric_grid(metrics)
 
-    render_section_open("Filter and Customize View", step="3", help_text="The extraction is complete. These controls only change the on-screen preview, not the extracted data.")
-    visible_sections = get_visible_sections()
-    selected_columns = get_breaker_columns()
+    render_section_open("Filter and Customize View", step="3", help_text="Choose a recommended view, search specific orders, or build a custom table. These controls only change the on-screen preview; the Excel report keeps the full extraction.")
     search_query = st.text_input(
-        "Search by Sales Order, Sales Order-Item, catalog number, ABB part number, or description",
-        placeholder="Example: 154258789 or XT5HU340ABYN000XXX",
+        "Search by Sales Order, Sales Order-Item, catalog number, ABB part number, source file, or description",
+        placeholder="Example: 154258789, 154258789-10, XT5HU340ABYN000XXX, or ER8440A",
     )
 
-    render_section_open("Results Preview", step="4", help_text="A lightweight formatted table is shown on screen. The Excel report contains the complete structured sheets.")
-    available_previews = [name for name, df in dataframes.items() if getattr(df, "empty", True) is False]
-    if not available_previews:
-        st.info("No rows were extracted.")
-    else:
-        selected_preview = st.selectbox("Preview section", available_previews)
-        preview_df = filter_dataframe(dataframes[selected_preview], search_query, visible_sections)
-        row_count = 0 if preview_df is None or preview_df.empty else len(preview_df)
-        st.markdown(
-            f'<span class="status-pill">{escape(selected_preview)}</span>'
-            f'<span class="status-pill dark">Rows shown: {row_count}</span>'
-            f'<span class="status-pill red">Full detail available in Excel</span>',
-            unsafe_allow_html=True,
+    view_mode = st.radio(
+        "Preview mode",
+        options=["Recommended views", "Custom table", "Raw extraction"],
+        horizontal=True,
+        help="Recommended views separate Breaker, Interior, and Box information. Custom table lets you choose sections and columns. Raw extraction shows the workbook sheets as extracted.",
+    )
+
+    breaker_columns = get_breaker_columns()
+
+    render_section_open("Results Preview", step="4", help_text="Grouped and section-specific views keep breaker-only fields away from Interior BOM and Box BOM rows.")
+
+    if view_mode == "Recommended views":
+        recommended_view = st.selectbox(
+            "Recommended view",
+            options=[
+                "Grouped by Sales Order-Item",
+                "Breaker BOM detail",
+                "Interior BOM detail",
+                "Box BOM detail",
+                "Spacer breakers excluded",
+                "Missing mappings",
+                "Processing log",
+            ],
         )
-        columns = selected_columns if selected_preview in {"Results", "Breaker BOM", "Spacer Breakers"} else None
-        st.markdown(dataframe_html_preview(preview_df, columns=columns, max_rows=50), unsafe_allow_html=True)
+        render_recommended_view(dataframes, recommended_view, search_query, breaker_columns)
+    elif view_mode == "Custom table":
+        render_custom_table(dataframes, search_query)
+    else:
+        render_raw_table(dataframes, search_query)
 
     render_section_open("Excel Report", step="5", help_text="Prepare the complete Excel workbook only after confirming the preview looks correct.")
     if st.button("Prepare Excel Report", type="primary"):
