@@ -1,0 +1,7 @@
+[client]
+toolbarMode = "viewer"
+showErrorDetails = "none"
+
+[server]
+maxUploadSize = 15
+maxMessageSize = 120
