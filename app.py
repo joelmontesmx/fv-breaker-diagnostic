@@ -35,258 +35,75 @@ st.set_page_config(page_title="Front View BOM Extractor", page_icon="⚡", layou
 # -----------------------------
 st.markdown(
     f"""
-    <style>
-        :root {{
-            --abb-red: {ABB_RED};
-            --abb-lilac: {ABB_LILAC};
-            --abb-red-light: {ABB_RED_LIGHT};
-            --abb-red-pale: {ABB_RED_PALE};
-            --abb-lilac-pale: {ABB_LILAC_PALE};
-            --abb-dark: {DARK};
-            --abb-bg: {GREY_BG};
-            --abb-border: {GREY_BORDER};
-        }}
-
-        .stApp {{
-            background: linear-gradient(180deg, #ffffff 0%, #fafafa 52%, #f7f8fb 100%);
-        }}
-
-        .block-container {{
-            padding-top: 1.6rem;
-            padding-bottom: 3rem;
-            max-width: 1320px;
-        }}
-
-        h1, h2, h3 {{
-            color: var(--abb-dark);
-            letter-spacing: -0.02em;
-        }}
-
-        .abb-hero {{
-            background: #ffffff;
-            border: 1px solid var(--abb-border);
-            border-radius: 22px;
-            padding: 1.35rem 1.55rem 1.2rem 1.55rem;
-            box-shadow: 0 12px 34px rgba(31, 31, 46, 0.07);
-            margin-bottom: 1.2rem;
-            position: relative;
-            overflow: hidden;
-        }}
-        .abb-hero:before {{
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 6px;
-            width: 100%;
-            background: linear-gradient(90deg, var(--abb-red) 0%, var(--abb-lilac) 100%);
-        }}
-        .abb-logo {{
-            color: var(--abb-red);
-            font-weight: 900;
-            font-size: 2.45rem;
-            line-height: 0.95;
-            letter-spacing: -0.06em;
-        }}
-        .abb-business {{
-            color: #4d5161;
-            font-weight: 700;
-            font-size: 0.92rem;
-            margin-top: 0.2rem;
-        }}
-        .abb-title {{
-            margin-top: 0.55rem;
-            font-size: clamp(2.05rem, 4vw, 3.2rem);
-            font-weight: 850;
-            color: var(--abb-dark);
-            letter-spacing: -0.045em;
-        }}
-        .abb-subtitle {{
-            margin-top: 0.15rem;
-            color: #5b6070;
-            font-size: 1.02rem;
-            max-width: 880px;
-        }}
-        .abb-slogan {{
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            margin-top: 0.9rem;
-            padding: 0.46rem 0.72rem;
-            border-radius: 999px;
-            background: linear-gradient(90deg, var(--abb-red-pale), var(--abb-lilac-pale));
-            color: var(--abb-dark);
-            font-weight: 800;
-            font-size: 0.9rem;
-        }}
-        .abb-slogan-dot {{
-            width: 8px;
-            height: 8px;
-            border-radius: 99px;
-            background: var(--abb-red);
-            box-shadow: 0 0 0 4px rgba(255, 0, 15, 0.12);
-        }}
-
-        .abb-section-card {{
-            background: #ffffff;
-            border: 1px solid var(--abb-border);
-            border-radius: 18px;
-            padding: 1rem 1.05rem;
-            box-shadow: 0 10px 24px rgba(31, 31, 46, 0.055);
-            margin: 0.85rem 0 1rem 0;
-        }}
-        .abb-section-title {{
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            font-size: 1.25rem;
-            color: var(--abb-dark);
-            font-weight: 850;
-            margin-bottom: 0.22rem;
-        }}
-        .abb-step {{
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 2rem;
-            height: 2rem;
-            border-radius: 11px;
-            background: var(--abb-red);
-            color: white;
-            font-weight: 850;
-            font-size: 0.95rem;
-        }}
-        .abb-help {{
-            color: #777d8d;
-            font-size: 0.93rem;
-            margin-bottom: 0.45rem;
-        }}
-
-        .file-chip {{
-            display: inline-flex;
-            align-items: center;
-            gap: 0.48rem;
-            padding: 0.48rem 0.7rem;
-            margin: 0.18rem 0.18rem 0.18rem 0;
-            border-radius: 999px;
-            border: 1px solid #dfe3ea;
-            background: #f7f8fb;
-            color: #303445;
-            font-size: 0.88rem;
-        }}
-        .file-chip span {{ color: #7a8090; }}
-
-        .metric-grid {{
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.78rem;
-            margin-top: 0.85rem;
-        }}
-        .metric-card {{
-            background: #ffffff;
-            border: 1px solid var(--abb-border);
-            border-radius: 16px;
-            padding: 0.9rem 1rem;
-            box-shadow: 0 8px 20px rgba(31, 31, 46, 0.045);
-            min-height: 90px;
-        }}
-        .metric-label {{
-            color: #6a7080;
-            font-size: 0.82rem;
-            font-weight: 750;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }}
-        .metric-value {{
-            color: var(--abb-dark);
-            font-size: 1.8rem;
-            font-weight: 900;
-            margin-top: 0.2rem;
-        }}
-        .metric-accent {{
-            width: 32px;
-            height: 4px;
-            border-radius: 99px;
-            margin-top: 0.55rem;
-            background: linear-gradient(90deg, var(--abb-red), var(--abb-lilac));
-        }}
-
-        .status-pill {{
-            display: inline-block;
-            padding: 0.35rem 0.58rem;
-            border-radius: 999px;
-            background: var(--abb-lilac-pale);
-            color: #34338a;
-            font-weight: 800;
-            font-size: 0.78rem;
-            margin-right: 0.35rem;
-            margin-top: 0.35rem;
-        }}
-        .status-pill.red {{
-            background: var(--abb-red-pale);
-            color: #9b0008;
-        }}
-        .status-pill.dark {{
-            background: #eff1f5;
-            color: #303445;
-        }}
-
-        div.stButton > button[kind="primary"] {{
-            background: var(--abb-red) !important;
-            border: 1px solid var(--abb-red) !important;
-            color: white !important;
-            font-weight: 800 !important;
-            border-radius: 12px !important;
-            min-height: 2.8rem;
-        }}
-        div.stButton > button[kind="primary"]:hover {{
-            background: #d9000d !important;
-            border-color: #d9000d !important;
-        }}
-        div.stButton > button:not([kind="primary"]) {{
-            border-radius: 12px !important;
-            font-weight: 750 !important;
-            border-color: #2d3140 !important;
-            color: #2d3140 !important;
-        }}
-
-        div[data-testid="stFileUploader"] section {{
-            border-radius: 16px !important;
-            border: 1px dashed #cfd5df !important;
-            background: #f6f7fa !important;
-        }}
-
-        .download-link {{
-            display: inline-block;
-            padding: 0.8rem 1.12rem;
-            border-radius: 12px;
-            background: var(--abb-red);
-            color: white !important;
-            text-decoration: none !important;
-            font-weight: 850;
-            box-shadow: 0 10px 22px rgba(255, 0, 15, 0.22);
-        }}
-        .download-link:hover {{
-            background: #d9000d;
-            color: white !important;
-            text-decoration: none !important;
-        }}
-
-        @media (max-width: 900px) {{
-            .metric-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-            .abb-title {{ font-size: 2.1rem; }}
-            .block-container {{ padding-left: 1rem; padding-right: 1rem; }}
-        }}
-        @media (max-width: 560px) {{
-            .metric-grid {{ grid-template-columns: 1fr; }}
-            .abb-logo {{ font-size: 2rem; }}
-            .abb-section-title {{ font-size: 1.08rem; }}
-        }}
-    </style>
+<style>
+:root {{
+    --abb-red: {ABB_RED};
+    --abb-lilac: {ABB_LILAC};
+    --abb-red-light: {ABB_RED_LIGHT};
+    --abb-red-pale: {ABB_RED_PALE};
+    --abb-lilac-pale: {ABB_LILAC_PALE};
+    --abb-dark: {DARK};
+    --abb-bg: {GREY_BG};
+    --abb-border: {GREY_BORDER};
+}}
+.stApp {{ background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 55%, #f5f6f8 100%); }}
+.block-container {{ padding-top: 1.15rem; padding-bottom: 3rem; max-width: 1280px; }}
+h1, h2, h3 {{ color: var(--abb-dark); letter-spacing: -0.02em; }}
+.abb-hero {{
+    background: #ffffff;
+    border: 1px solid var(--abb-border);
+    border-radius: 24px;
+    padding: 1.45rem 1.55rem 1.35rem 1.55rem;
+    box-shadow: 0 16px 44px rgba(31, 31, 46, 0.075);
+    margin-bottom: 1.15rem;
+    position: relative;
+    overflow: hidden;
+}}
+.abb-hero:before {{ content: ""; position: absolute; inset: 0 auto auto 0; height: 6px; width: 100%; background: linear-gradient(90deg, var(--abb-red) 0%, var(--abb-lilac) 100%); }}
+.abb-brand-row {{ display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.15rem; }}
+.abb-brand-left {{ display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }}
+.abb-logo {{ color: var(--abb-red); font-weight: 950; font-size: clamp(2.2rem, 5vw, 3.9rem); line-height: 0.88; letter-spacing: -0.085em; }}
+.abb-slogan-wordmark {{ color: var(--abb-dark); font-weight: 950; font-size: clamp(1.25rem, 2.7vw, 2.25rem); line-height: 0.92; letter-spacing: -0.035em; text-transform: uppercase; }}
+.abb-slogan-wordmark span {{ display: block; }}
+.abb-business {{ color: #4d5161; font-weight: 780; font-size: 0.95rem; padding: 0.45rem 0.8rem; border: 1px solid #eef0f4; border-radius: 999px; background: #fafbfc; }}
+.abb-title {{ margin-top: 1.15rem; font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 900; color: var(--abb-dark); letter-spacing: -0.045em; }}
+.abb-subtitle {{ margin-top: 0.25rem; color: #5b6070; font-size: 1rem; max-width: 900px; line-height: 1.55; }}
+.abb-rail {{ display: flex; gap: 0.4rem; margin-top: 1.05rem; }}
+.abb-rail div {{ height: 4px; border-radius: 99px; }}
+.abb-rail-red {{ width: 90px; background: var(--abb-red); }}
+.abb-rail-lilac {{ width: 54px; background: var(--abb-lilac); }}
+.abb-section-card {{ background: #ffffff; border: 1px solid var(--abb-border); border-radius: 18px; padding: 1rem 1.05rem; box-shadow: 0 10px 26px rgba(31, 31, 46, 0.055); margin: 0.85rem 0 1rem 0; }}
+.abb-section-title {{ display: flex; align-items: center; gap: 0.65rem; font-size: 1.22rem; color: var(--abb-dark); font-weight: 880; margin-bottom: 0.22rem; }}
+.abb-step {{ display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; height: 2rem; border-radius: 11px; background: var(--abb-red); color: white; font-weight: 900; font-size: 0.95rem; }}
+.abb-help {{ color: #777d8d; font-size: 0.93rem; margin-bottom: 0.45rem; }}
+.file-chip {{ display: inline-flex; align-items: center; gap: 0.48rem; padding: 0.48rem 0.7rem; margin: 0.18rem 0.18rem 0.18rem 0; border-radius: 999px; border: 1px solid #dfe3ea; background: #f7f8fb; color: #303445; font-size: 0.88rem; }}
+.file-chip span {{ color: #7a8090; }}
+.metric-grid {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.78rem; margin-top: 0.85rem; }}
+.metric-card {{ background: #ffffff; border: 1px solid var(--abb-border); border-radius: 16px; padding: 0.9rem 1rem; box-shadow: 0 8px 20px rgba(31, 31, 46, 0.045); min-height: 92px; }}
+.metric-label {{ color: #6a7080; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }}
+.metric-value {{ color: var(--abb-dark); font-size: 1.75rem; font-weight: 950; margin-top: 0.2rem; }}
+.metric-accent {{ width: 34px; height: 4px; border-radius: 99px; margin-top: 0.55rem; background: linear-gradient(90deg, var(--abb-red), var(--abb-lilac)); }}
+.status-pill {{ display: inline-block; padding: 0.35rem 0.58rem; border-radius: 999px; background: var(--abb-lilac-pale); color: #34338a; font-weight: 820; font-size: 0.78rem; margin-right: 0.35rem; margin-top: 0.35rem; }}
+.status-pill.red {{ background: var(--abb-red-pale); color: #9b0008; }}
+.status-pill.dark {{ background: #eff1f5; color: #303445; }}
+.preview-table-wrap {{ overflow-x: auto; border: 1px solid var(--abb-border); border-radius: 16px; background: #ffffff; box-shadow: 0 8px 20px rgba(31,31,46,0.04); margin-top: 0.85rem; }}
+.preview-table {{ width: 100%; border-collapse: collapse; min-width: 920px; font-size: 0.86rem; }}
+.preview-table th {{ text-align: left; background: #f2f3f6; color: #4f5565; padding: 0.72rem 0.8rem; border-bottom: 1px solid var(--abb-border); font-weight: 850; white-space: nowrap; }}
+.preview-table td {{ padding: 0.68rem 0.8rem; border-bottom: 1px solid #eef0f4; color: #272b38; vertical-align: top; }}
+.preview-table tr:nth-child(even) td {{ background: #fbfcfd; }}
+.preview-empty {{ padding: 1rem; color: #777d8d; background: #ffffff; border: 1px solid var(--abb-border); border-radius: 14px; }}
+div.stButton > button[kind="primary"] {{ background: var(--abb-red) !important; border: 1px solid var(--abb-red) !important; color: white !important; font-weight: 850 !important; border-radius: 12px !important; min-height: 2.8rem; }}
+div.stButton > button[kind="primary"]:hover {{ background: #d9000d !important; border-color: #d9000d !important; }}
+div.stButton > button:not([kind="primary"]) {{ border-radius: 12px !important; font-weight: 780 !important; border-color: #2d3140 !important; color: #2d3140 !important; }}
+div[data-testid="stFileUploader"] section {{ border-radius: 16px !important; border: 1px dashed #cfd5df !important; background: #f6f7fa !important; }}
+.download-link {{ display: inline-block; padding: 0.8rem 1.12rem; border-radius: 12px; background: var(--abb-red); color: white !important; text-decoration: none !important; font-weight: 880; box-shadow: 0 10px 22px rgba(255, 0, 15, 0.22); }}
+.download-link:hover {{ background: #d9000d; color: white !important; text-decoration: none !important; }}
+@media (max-width: 900px) {{ .metric-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }} .abb-title {{ font-size: 2rem; }} .block-container {{ padding-left: 1rem; padding-right: 1rem; }} .abb-brand-row {{ align-items: flex-start; }} }}
+@media (max-width: 560px) {{ .metric-grid {{ grid-template-columns: 1fr; }} .abb-logo {{ font-size: 2rem; }} .abb-slogan-wordmark {{ font-size: 1.25rem; }} .abb-section-title {{ font-size: 1.08rem; }} }}
+</style>
     """,
     unsafe_allow_html=True,
 )
-
 
 # -----------------------------
 # Utilities
@@ -388,26 +205,30 @@ def render_metric_grid(metrics: dict) -> None:
     cards = []
     for label, value in items:
         cards.append(
-            f'''
-            <div class="metric-card">
-                <div class="metric-label">{escape(str(label))}</div>
-                <div class="metric-value">{escape(str(value))}</div>
-                <div class="metric-accent"></div>
-            </div>
-            '''
+            '<div class="metric-card">'
+            f'<div class="metric-label">{escape(str(label))}</div>'
+            f'<div class="metric-value">{escape(str(value))}</div>'
+            '<div class="metric-accent"></div>'
+            '</div>'
         )
-    st.markdown(f'<div class="metric-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="metric-grid">' + ''.join(cards) + '</div>', unsafe_allow_html=True)
 
 
-def dataframe_csv_preview(df: pd.DataFrame, columns: Iterable[str] | None = None, max_rows: int = 40) -> str:
+def dataframe_html_preview(df: pd.DataFrame, columns: Iterable[str] | None = None, max_rows: int = 40) -> str:
     if df is None or df.empty:
-        return "No rows."
+        return '<div class="preview-empty">No rows.</div>'
     preview = df.copy()
     if columns:
         keep = [column for column in columns if column in preview.columns]
         if keep:
             preview = preview[keep]
-    return preview.head(max_rows).to_csv(index=False)
+    preview = preview.head(max_rows).fillna("").astype(str)
+    headers = ''.join(f'<th>{escape(col)}</th>' for col in preview.columns)
+    body_rows = []
+    for _, row in preview.iterrows():
+        cells = ''.join(f'<td>{escape(str(value))}</td>' for value in row.tolist())
+        body_rows.append(f'<tr>{cells}</tr>')
+    return '<div class="preview-table-wrap"><table class="preview-table"><thead><tr>' + headers + '</tr></thead><tbody>' + ''.join(body_rows) + '</tbody></table></div>'
 
 
 def filter_dataframe(df: pd.DataFrame, query: str, visible_sections: list[str]) -> pd.DataFrame:
@@ -483,14 +304,13 @@ def get_breaker_columns() -> list[str]:
         "Phases Used",
         "Notes",
     ]
-    st.markdown("**Optional breaker fields**")
-    cols = st.columns(4)
-    selected = []
-    default_on = {"Trip Amps", "Poles", "Lug Cable Size / Neut Sensor / Grnd Fault Cable"}
-    for index, field in enumerate(optional_fields):
-        with cols[index % 4]:
-            if st.toggle(field, value=field in default_on, key=f"field_{field}"):
-                selected.append(field)
+    default_fields = ["Trip Amps", "Poles", "Lug Cable Size / Neut Sensor / Grnd Fault Cable"]
+    selected = st.multiselect(
+        "Optional breaker fields to display",
+        options=optional_fields,
+        default=default_fields,
+        help="These fields only affect the on-screen preview. The Excel report keeps the complete extraction.",
+    )
     return base + selected
 
 
@@ -498,20 +318,10 @@ def get_breaker_columns() -> list[str]:
 # Header
 # -----------------------------
 st.markdown(
-    '''
-    <div class="abb-hero">
-        <div class="abb-logo">ABB</div>
-        <div class="abb-business">Electrical Control Systems</div>
-        <div class="abb-title">Front View BOM Extractor</div>
-        <div class="abb-subtitle">
-            Extract Breaker BOM, Interior BOM, and Box BOM information from Front View PDFs,
-            cross-reference catalog numbers to ABB part numbers, and generate a structured Excel report.
-        </div>
-        <div class="abb-slogan"><span class="abb-slogan-dot"></span>Engineered to Outrun</div>
-    </div>
-    ''',
+    '''<div class="abb-hero"><div class="abb-brand-row"><div class="abb-brand-left"><div class="abb-logo">ABB</div><div class="abb-slogan-wordmark"><span>Engineered</span><span>to Outrun</span></div></div><div class="abb-business">Electrical Control Systems</div></div><div class="abb-title">Front View BOM Extractor</div><div class="abb-subtitle">Extract Breaker BOM, Interior BOM, and Box BOM information from Front View PDFs, cross-reference catalog numbers to ABB part numbers, and generate a structured Excel report.</div><div class="abb-rail"><div class="abb-rail-red"></div><div class="abb-rail-lilac"></div></div></div>''',
     unsafe_allow_html=True,
 )
+
 
 control_left, control_right = st.columns([5, 1])
 with control_right:
@@ -599,7 +409,7 @@ if result:
         placeholder="Example: 154258789 or XT5HU340ABYN000XXX",
     )
 
-    render_section_open("Results Preview", step="4", help_text="Stable preview mode uses CSV text to avoid Streamlit Cloud download/grid crashes. The Excel report contains the structured sheets.")
+    render_section_open("Results Preview", step="4", help_text="A lightweight formatted table is shown on screen. The Excel report contains the complete structured sheets.")
     available_previews = [name for name, df in dataframes.items() if getattr(df, "empty", True) is False]
     if not available_previews:
         st.info("No rows were extracted.")
@@ -614,7 +424,7 @@ if result:
             unsafe_allow_html=True,
         )
         columns = selected_columns if selected_preview in {"Results", "Breaker BOM", "Spacer Breakers"} else None
-        st.code(dataframe_csv_preview(preview_df, columns=columns, max_rows=50), language="csv")
+        st.markdown(dataframe_html_preview(preview_df, columns=columns, max_rows=50), unsafe_allow_html=True)
 
     render_section_open("Excel Report", step="5", help_text="Prepare the complete Excel workbook only after confirming the preview looks correct.")
     if st.button("Prepare Excel Report", type="primary"):
